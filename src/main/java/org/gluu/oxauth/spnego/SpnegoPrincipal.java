@@ -4,41 +4,32 @@ import org.ietf.jgss.GSSCredential;
 
 public class SpnegoPrincipal {
 
-    private final String username;
-    private final String domain;
-    private final GSSCredential delegCredential;
+    private final String principalName;
+    private final GSSCredential delegationCredential;
 
-    public SpnegoPrincipal(final String principalName,final GSSCredential delegCredential) {
+    public SpnegoPrincipal(final String principalName,final GSSCredential delegationCredential) {
 
-        this.delegCredential = delegCredential;
-        String [] parts = principalName.split("@");
-        if(parts.length != 2) {
-            this.username = null;
-            this.domain = null;
-            return;
-        }
-        this.username = parts[0];
-        this.domain   = parts[1];
-    }
-
-    public final String getUsername() {
-
-        return this.username;
-    }
-
-    public final String getDomain() {
-
-        return this.domain;
+        this.principalName = principalName;
+        this.delegationCredential = delegationCredential;
     }
 
     public final String getPrincipalName() {
 
-        return username + "@" + domain;
+        return this.principalName;
     }
 
-    public final  GSSCredential getDelegCredential() {
+    public final String getUsername() {
 
-        return this.delegCredential;
+        return principalName.split("@")[0];
     }
 
+    public final String getDomain() {
+
+        return principalName.split("@")[1];
+    }
+
+    public final GSSCredential getDelegationCredential() {
+
+        return this.delegationCredential;
+    }
 }

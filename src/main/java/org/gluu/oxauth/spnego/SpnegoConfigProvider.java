@@ -8,39 +8,34 @@ import java.util.Set;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-public class KerberosConfiguration {
-    
+public class SpnegoConfigProvider {
+
     private static final String KERBEROS_AUTH_MODULE = "com.sun.security.auth.module.Krb5LoginModule";
+    private static final String IS_INITIATOR_JAAS_OPT = "isInitiator";
+    private static final String USE_KEYTAB_JAAS_OPT = "useKeyTab";
+    private static final String DO_NOT_PROMPT_JAAS_OPT = "doNotPrompt";
+    private static final String STORE_KEY_JAAS_OPT = "storeKey";
+    private static final String PRINCIPAL_JAAS_OPT = "principal";
+    private static final String KEYTAB_JAAS_OPT = "keyTab";
 
     private String kerberosConfigFile;
     private String keyTabFile;
     private String serverPrincipal;
     private Map<String,Object> additionalJaasParameters;
-    private boolean allowDelegation;
+    private boolean credentialDelegation;
 
-    public KerberosConfiguration() {
+    public SpnegoConfigProvider() {
 
         this.additionalJaasParameters = new HashMap<String,Object>();
-        this.allowDelegation = false;
+        this.credentialDelegation = false;
     }
 
     public void setKerberosConfigFile(String kerberosConfigFile) {
 
         this.kerberosConfigFile = kerberosConfigFile;
-    }
-
-    public boolean hasKerberosConfigFile() {
-
-        return this.kerberosConfigFile != null && !this.kerberosConfigFile.isEmpty();
-    }
-
-    public String getKerberosConfigFile() {
-
-        return this.kerberosConfigFile;
-    }
+    } 
 
     public void setKeyTabFile(String keyTabFile) {
-
         this.keyTabFile = keyTabFile;
     }
 
@@ -49,30 +44,39 @@ public class KerberosConfiguration {
         this.serverPrincipal = serverPrincipal;
     }
 
-    public void setAdditionalJaasParameter(String name,Object value) {
+    public void setAdditionalJaasParameter(String name,String value) {
 
         this.additionalJaasParameters.put(name,value);
     }
 
+    public String getKerberosConfigFile() {
+
+        return this.kerberosConfigFile;
+    }
+
+    public boolean getCredentialDelegation() {
+
+        return this.credentialDelegation;
+    }
 
     public Configuration getJaasConfiguration() {
 
         return new Configuration() {
 
             @Override
-            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+            public AppConfigurationEntry [] getAppConfigurationEntry(String name) {
                 Map<String,Object> options = new HashMap<String,Object>();
-                options.put("isInitiator","false");
-                options.put("useKeyTab"  ,"true");
-                options.put("doNotPrompt","true");
-                options.put("storeKey","true");
+                options.put(IS_INITIATOR_JAAS_OPT,"false");
+                options.put(USE_KEYTAB_JAAS_OPT,"true");
+                options.put(DO_NOT_PROMPT_JAAS_OPT,"true");
+                options.put(STORE_KEY_JAAS_OPT,"true");
 
                 if(serverPrincipal != null) {
-                    options.put("principal",serverPrincipal);
+                    options.put(PRINCIPAL_JAAS_OPT,serverPrincipal);
                 }
 
                 if(keyTabFile != null) {
-                    options.put("keyTab",keyTabFile);
+                    options.put(KEYTAB_JAAS_OPT,keyTabFile);
                 }
 
                 if(!additionalJaasParameters.isEmpty()) {
@@ -85,15 +89,11 @@ public class KerberosConfiguration {
                     }
                 }
 
-                AppConfigurationEntry krbLoginConfig = new AppConfigurationEntry(KERBEROS_AUTH_MODULE,
+                AppConfigurationEntry krbLoginConf = new AppConfigurationEntry(KERBEROS_AUTH_MODULE,
                     AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,options);
-                return new AppConfigurationEntry[] {krbLoginConfig};
+                
+                return new AppConfigurationEntry [] { krbLoginConf};
             }
         };
-    }
-
-    public boolean allowDelegation() {
-
-        return this.allowDelegation;
     }
 }
