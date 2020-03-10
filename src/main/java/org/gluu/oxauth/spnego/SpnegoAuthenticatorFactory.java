@@ -1,18 +1,11 @@
 package org.gluu.oxauth.spnego;
 
+import org.gluu.oxauth.spnego.impl.SunJdkSpnegoAuthenticator;
 
 public class SpnegoAuthenticatorFactory {
 
-    private SpnegoConfigProvider configProvider;
+    public final SpnegoAuthenticator createAuthenticator(final String spnegoToken,final SpnegoConfigProvider configProvider) {
 
-    public SpnegoAuthenticatorFactory(SpnegoConfigProvider configProvider) {
-
-        this.configProvider = configProvider;
-    }
-
-    public final SpnegoAuthenticator createAuthenticator() {
-
-        
-        return null;
+        return new SunJdkSpnegoAuthenticator(spnegoToken, configProvider);
     }
 }
