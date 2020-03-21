@@ -159,4 +159,5 @@ setup/deps/*.jar
 .settings/
 *.factorypath
 *.classpath
+target/
 

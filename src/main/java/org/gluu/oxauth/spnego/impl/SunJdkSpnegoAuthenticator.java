@@ -41,7 +41,7 @@ public class SunJdkSpnegoAuthenticator implements SpnegoAuthenticator {
             Subject serverSubject = serverSubjectAuthenticator.authenticateServerSubject();
             principal = Subject.doAs(serverSubject,new AcceptSecContext());
         }catch(Exception e) {
-
+            e.printStackTrace();
         }finally {
             serverSubjectAuthenticator.logoutServerSubject();
         }

@@ -1,7 +1,9 @@
-package org.gluu.oxauth.spnego.http;
+package org.gluu.oxauth.spnego;
+
+import org.gluu.oxauth.spnego.http.HttpAuthorization;
 
 
-public class HttpUtil  {
+public class SpnegoUtil  {
 
     public static final HttpAuthorization parseHttpAuthorization(final String authorizationValue) {
         
@@ -28,4 +30,17 @@ public class HttpUtil  {
         return value;
     }
 
+
+    public static final void setKerberosConfigFile(final String configFile) {
+
+        System.setProperty(SpnegoConstants.KRB5_CONFIG_FILE,configFile);
+    }
+
+    public static final void enableDebug(boolean enabled) {
+
+        String debugval = (enabled==true?"true":"false");
+        System.setProperty(SpnegoConstants.KRB5_DEBUG_FLAG,debugval);
+        System.setProperty(SpnegoConstants.SPNEGO_DEBUG_FLAG,debugval);
+        System.setProperty(SpnegoConstants.JGSS_DEBUG_FLAG,debugval);
+    }
 }
