@@ -44,6 +44,11 @@ public class SpnegoConfigProvider {
         this.serverPrincipal = serverPrincipal;
     }
 
+    public String getServerPrincipal() {
+
+        return this.serverPrincipal;
+    }
+
     public void setAdditionalJaasParameter(String name,String value) {
 
         this.additionalJaasParameters.put(name,value);
@@ -66,7 +71,7 @@ public class SpnegoConfigProvider {
             @Override
             public AppConfigurationEntry [] getAppConfigurationEntry(String name) {
                 Map<String,Object> options = new HashMap<String,Object>();
-                options.put(IS_INITIATOR_JAAS_OPT,"false");
+                options.put(IS_INITIATOR_JAAS_OPT,"true");
                 options.put(USE_KEYTAB_JAAS_OPT,"true");
                 options.put(DO_NOT_PROMPT_JAAS_OPT,"true");
                 options.put(STORE_KEY_JAAS_OPT,"true");

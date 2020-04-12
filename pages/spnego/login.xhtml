@@ -5,20 +5,67 @@
 	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
 	xmlns:b="http://bootsfaces.net/ui"
 	xmlns:h="http://xmlns.jcp.org/jsf/html"
-	template="/WEB-INF/incl/layout/login-template.xhtml">
+	template="/WEB-INF/incl/layout/login-extended-template.xhtml">
 	<f:metadata>
 		<f:viewAction action="#{authenticator.prepareAuthenticationForStep}" />
 		<f:viewParam name="login_hint" value="#{loginAction.loginHint}" />
 	</f:metadata>
+
 	<ui:define name="head">
 		<meta name="description" content="Gluu, Inc." />
+		<script>
+			$(document).ready(function() {
+				var response_form = $('form#response');
+				if(response_form.length != 0) {
+					setTimeout(function() {
+						$('form#response').submit();
+					},5000);
+				}
+			});
+		</script>
 	</ui:define>
+
 	<ui:define name="pageTitle">
 		<h:outputText value="#{msgs['login.pageTitle']}" />
 	</ui:define>
+
 	<ui:define name="body">
-		<div class="container">
-            Login html
-        </div>
+		
+		<div class="container-fluid" style="padding-bottom: 5%; width: 50%; height: 50%;">
+			
+			<!-- spnego authentication error -->
+			<h:panelGroup id="spnego_auth_error" styleClass="row" rendered="#{not identity.getWorkingParameter('spnego_auth_success')}">
+				<div class="text-center col-sm-12">
+					<div class="section">
+						<h5 style="font-size: 1.5em; font-weight: bold; font-family: Arial;">
+							<h:outputText value="#{msgs['spnego.error_header']}"/>
+						</h5>
+					</div>
+					<div class="section text-center">
+						<p><h:outputText value="#{msgs[identity.getWorkingParameter('spnego_error_msg')]}"/></p>
+					</div>
+				</div>
+			</h:panelGroup>
+
+			<h:panelGroup id="spnego_auth_success" styleClass="row" rendered="#{identity.getWorkingParameter('spnego_auth_success')}">
+				<div class="text-center col-sm-12">
+					<div class="section">
+						<h5 style="font-size: 1.5em; font-weight: bold; font-family: Arial;">
+							<h:outputText value="#{msgs['spnego.success_header']}"/>
+						</h5>
+					</div>
+					<div class="section text-center">
+						<p><h:outputText value="#{msgs['spnego.success_msg']}"/></p>
+					</div>
+
+					<form id="response" method="post" action="#{request.contextPath}/postlogin.htm">
+						<input type="hidden" name="username" value="#{identity.getWorkingParameter('spnego_username')}"/>
+					</form>
+				</div>
+			</h:panelGroup>
+
+		</div>
+
+		
 	</ui:define>
 </ui:composition>
