@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import javax.security.auth.Subject;
 
+import org.gluu.oxauth.spnego.SpnegoAuthError;
 import org.gluu.oxauth.spnego.SpnegoAuthenticator;
 import org.gluu.oxauth.spnego.SpnegoConfigProvider;
 import org.gluu.oxauth.spnego.SpnegoConstants;
@@ -51,6 +52,7 @@ public class SunJdkSpnegoAuthenticator implements SpnegoAuthenticator {
             principal = Subject.doAs(serverSubject,new AcceptSecContext());
         }catch(Exception e) {
             logger.debug("SPNEGO Authentication failed",e);
+            throw new SpnegoAuthError("SPNEGO Authentication failed",e);
         }finally {
             serverSubjectAuthenticator.logoutServerSubject();
         }

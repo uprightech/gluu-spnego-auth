@@ -9,6 +9,7 @@ from org.gluu.jsf2.service import FacesService
 from org.gluu.model.custom.script.type.auth import PersonAuthenticationType
 from org.gluu.oxauth.model.config import Constants
 from org.gluu.oxauth.security import Identity
+from org.gluu.oxauth.spnego import SpnegoAuthError
 from org.gluu.oxauth.spnego import SpnegoAuthenticatorFactory, SpnegoConfigProvider, SpnegoUtil, SpnegoConstants
 from org.gluu.oxauth.service import AuthenticationService, SessionIdService , UserService
 from org.gluu.service.cdi.util import CdiUtil
@@ -23,6 +24,7 @@ class PersonAuthentication(PersonAuthenticationType):
         print "SPNEGO. Init"
         self.spnegoTokenWorkingParameter = ""
         self.spnegoDebug = False
+        self.alternativeAcr = None
         self.configProvider = self.createSpnegoConfiguration(configurationAttributes)
         if self.configProvider == None:
             print "SPNEGO. Init fail. Some configuration parameters may be missing"
@@ -53,10 +55,32 @@ class PersonAuthentication(PersonAuthenticationType):
     
     def isValidAuthenticationMethod(self, usageType, configurationAttributes):
         print "SPNEGO. isValidAuthenticationMethod()"
+        identity = CdiUtil.bean(Identity)
+        spnego_fatal_error = identity.getWorkingParameter('spnego_fatal_error')
+        if spnego_fatal_error is True and self.alternativeAcr is not None:
+            print "SPNEGO. Invalid authentication method"
+            return False
+
+        if (self.parseSpnegoAlternateAcr() is not None) and (self.alternativeAcr is not None):
+            print "SPNEGO. Invalid authentication method. Determined from request params"
+            return False
+        
+        print "SPNEGO. This is a valid authentication method"
         return True
     
     def getAlternativeAuthenticationMethod(self, usageType, configurationAttributes):
         print "SPNEGO. getAlternativeAuthenticationMethod()"
+        identity = CdiUtil.bean(Identity)
+        spnego_fatal_error = identity.getWorkingParameter('spnego_fatal_error')
+        if spnego_fatal_error is True and self.alternativeAcr is not None:
+            print "SPNEGO. Alternative acr %s" % (self.alternativeAcr)
+            return self.alternativeAcr
+
+        if (self.parseSpnegoAlternateAcr() is not None) and (self.alternativeAcr is not None):
+            print "SPNEGO. Alternative acr from query string %s" % (self.alternativeAcr)
+            return self.alternativeAcr
+        
+        print "SPNEGO. No alternative acr"
         return None
 
     def authenticate(self, configurationAttributes, requestParameters, step):
@@ -89,6 +113,13 @@ class PersonAuthentication(PersonAuthenticationType):
             identity.setWorkingParameter('spnego_auth_success',False)
             identity.setWorkingParameter('spnego_error_msg',None)
         
+        if self.alternativeAcr is None:
+            identity.setWorkingParameter('spnego_valid_alternative_acr',False)
+            identity.setWorkingParameter('spnego_alternative_acr',None)
+        else:
+            identity.setWorkingParameter('spnego_valid_alternative_acr',True)
+            identity.setWorkingParameter('spnego_alternative_acr',self.alternativeAcr)
+        
         httpauth = self.parseHttpAuthorization()
         if (httpauth is None):
             print "SPNEGO. No authorization headers"
@@ -103,12 +134,26 @@ class PersonAuthentication(PersonAuthenticationType):
             print "SPNEGO. Unsupported authentication scheme (%s)" % (httpauth.getScheme())
             identity.setWorkingParameter('spnego_auth_success',False)
             identity.setWorkingParameter('spnego_error_msg','spnego.error.unsupported_auth_scheme')
+            if self.alternativeAcr is not None:
+                identity.setWorkingParameter('spnego_fatal_error',True)
+                authn_header = SpnegoUtil.buildAuthenticateHeaderValue(None)
+                self.addHttpResponseHeader(SpnegoConstants.WWW_AUTHENTICATE_HEADER_NAME,authn_header)
+                self.setResponseHttpStatus(SpnegoConstants.HTTP_UNAUTHORIZED_STATUS_CODE)
             return True
         
         config_provider = self.configProvider
         auth_token = httpauth.getToken()
         spnego_authenticator = self.authenticatorFactory.createAuthenticator(auth_token,config_provider)
-        spnego_principal = spnego_authenticator.authenticate()
+        try:
+            spnego_principal = spnego_authenticator.authenticate()
+        except SpnegoAuthError:
+            identity.setWorkingParameter('spnego_fatal_error',True)
+            identity.setWorkingParameter('spnego_auth_success',False)
+            identity.setWorkingParameter('spnego_error_msg','spnego.error.fatal_error')
+            authn_header = SpnegoUtil.buildAuthenticateHeaderValue(None)
+            self.addHttpResponseHeader(SpnegoConstants.WWW_AUTHENTICATE_HEADER_NAME,authn_header)
+            self.setResponseHttpStatus(SpnegoConstants.HTTP_UNAUTHORIZED_STATUS_CODE)
+            return True
 
         if (spnego_principal is None):
             print "SPNEGO. Authentication handshake incomplete"
@@ -141,9 +186,9 @@ class PersonAuthentication(PersonAuthenticationType):
 
     def getExtraParametersForStep(self, configurationAttributes, step):
         if (step == 1):
-            return Arrays.asList("spnego_token","spnego_principal","spnego_auth_success","spnego_username")
+            return Arrays.asList("spnego_token","spnego_principal","spnego_auth_success","spnego_username","spnego_fatal_error")
         elif (step == 2):
-            return Arrays.asList("spnego_token","spnego_principal","spnego_auth_success","spnego_username")
+            return Arrays.asList("spnego_token","spnego_principal","spnego_auth_success","spnego_username","spnego_fatal_error")
         return None
     
     def getCountAuthenticationSteps(self, configurationAttributes):
@@ -181,6 +226,11 @@ class PersonAuthentication(PersonAuthenticationType):
         request = facesContext.getExternalContext().getRequest()
         headerValue = request.getHeader(SpnegoConstants.AUTHORIZATION_HEADER_NAME)
         return SpnegoUtil.parseHttpAuthorization(headerValue)
+
+    def parseSpnegoAlternateAcr(self):
+        facesContext = CdiUtil.bean(FacesContext)
+        request = facesContext.getExternalContext().getRequest()
+        return request.getParameter('alternate_acr')
     
     def getAuthenticatedUser(self):
         authenticationService = CdiUtil.bean(AuthenticationService)
@@ -242,5 +292,7 @@ class PersonAuthentication(PersonAuthenticationType):
             renewTgt = configurationAttributes.get("krb5_login_renew_tgt").getValue2()
             config.setAdditionalJaasParameter("renewTGT",renewTgt)
         
-
+        if configurationAttributes.containsKey("kerberos_alternative_acr"):
+            self.alternativeAcr = configurationAttributes.get("kerberos_alternative_acr").getValue2()
+        
         return config

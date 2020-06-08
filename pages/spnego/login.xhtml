@@ -15,11 +15,21 @@
 		<meta name="description" content="Gluu, Inc." />
 		<script>
 			$(document).ready(function() {
+
+				// submit form after authentication is successful
 				var response_form = $('form#response');
 				if(response_form.length != 0) {
 					setTimeout(function() {
 						$('form#response').submit();
 					},5000);
+				}
+
+				//optionally switch acrs if spnego fails
+				var acr_switch_form = $('form#acr_switch_form');
+				if(acr_switch_form.length != 0) {
+					setTimeout(function() {
+						$('form#acr_switch_form').submit();
+					},2000);
 				}
 			});
 		</script>
@@ -44,6 +54,12 @@
 					<div class="section text-center">
 						<p><h:outputText value="#{msgs[identity.getWorkingParameter('spnego_error_msg')]}"/></p>
 					</div>
+
+					<h:panelGroup id="acr_switch_panel" layout="span" rendered="#{identity.getWorkingParameter('spnego_valid_alternative_acr')}">
+						<form id="acr_switch_form" method="get" action="#{request.contextPath}/spnego/login.htm">
+							<input type="hidden" name="alternate_acr" value="#{identity.getWorkingParameter('spnego_alternative_acr')}"/>
+						</form>
+					</h:panelGroup>
 				</div>
 			</h:panelGroup>
 
